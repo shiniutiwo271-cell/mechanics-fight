@@ -1,0 +1,1235 @@
+<!doctype html>
+
+<html lang="zh-CN">
+
+<head>
+
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>建筑力学功德模拟器</title>
+
+  <style>
+
+    :root {
+
+      --ink: #403653;
+
+      --muted: #817692;
+
+      --beam: #f8d577;
+
+      --shine-x: 50%;
+
+      --shine-y: 30%;
+
+    }
+
+
+
+    * { box-sizing: border-box; }
+
+
+
+    body {
+
+      margin: 0;
+
+      min-height: 100vh;
+
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+
+      color: var(--ink);
+
+      background:
+
+        radial-gradient(circle at 18% 14%, rgba(255,232,143,.78), transparent 28%),
+
+        radial-gradient(circle at 82% 10%, rgba(217,204,255,.86), transparent 28%),
+
+        radial-gradient(circle at 70% 82%, rgba(255,215,231,.55), transparent 30%),
+
+        linear-gradient(135deg, #fffaf0 0%, #f7efff 52%, #fff5c9 100%);
+
+      overflow-x: hidden;
+
+    }
+
+
+
+    .page {
+
+      min-height: 100vh;
+
+      padding: 42px 18px 28px;
+
+      display: grid;
+
+      place-items: center;
+
+    }
+
+
+
+    .shell {
+
+      width: min(100%, 980px);
+
+      display: grid;
+
+      gap: 18px;
+
+    }
+
+
+
+    .hero-card, .info-card {
+
+      border: 1px solid rgba(255,255,255,.72);
+
+      background:
+
+        radial-gradient(circle at var(--shine-x) var(--shine-y), rgba(255,255,255,.72), transparent 24%),
+
+        linear-gradient(145deg, rgba(255,255,255,.66), rgba(255,255,255,.32));
+
+      box-shadow: 0 22px 70px rgba(91,69,125,.16), inset 0 1px 0 rgba(255,255,255,.86);
+
+      backdrop-filter: blur(18px);
+
+      transform: perspective(900px) rotateX(var(--tilt-y, 0deg)) rotateY(var(--tilt-x, 0deg));
+
+      transition: transform .16s ease;
+
+    }
+
+
+
+    .hero-card {
+
+      position: relative;
+
+      overflow: hidden;
+
+      min-height: 610px;
+
+      padding: clamp(22px, 4vw, 38px);
+
+      border-radius: 30px;
+
+    }
+
+
+
+    .topline {
+
+      display: flex;
+
+      justify-content: space-between;
+
+      gap: 14px;
+
+      position: relative;
+
+      z-index: 2;
+
+    }
+
+
+
+    h1 {
+
+      margin: 0;
+
+      font-size: clamp(30px, 6vw, 62px);
+
+      line-height: 1.02;
+
+      letter-spacing: 0;
+
+    }
+
+
+
+    .subtitle {
+
+      margin: 12px 0 0;
+
+      color: var(--muted);
+
+      font-size: clamp(15px, 2.2vw, 18px);
+
+    }
+
+
+
+    .score-card {
+
+      min-width: 146px;
+
+      padding: 14px 16px;
+
+      border-radius: 20px;
+
+      background: rgba(255,255,255,.48);
+
+      border: 1px solid rgba(255,255,255,.74);
+
+      box-shadow: 0 14px 40px rgba(83,64,116,.12);
+
+      text-align: center;
+
+    }
+
+
+
+    .score-label {
+
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 13px;
+
+    }
+
+
+
+    .score-value {
+
+      display: block;
+
+      margin-top: 3px;
+
+      font-size: 38px;
+
+      font-weight: 900;
+
+      color: #7f64cc;
+
+    }
+
+
+
+    .stage {
+
+      position: relative;
+
+      display: grid;
+
+      place-items: center;
+
+      min-height: 350px;
+
+      margin: 28px auto 12px;
+
+      width: min(100%, 760px);
+
+    }
+
+
+
+    .speech {
+
+      position: absolute;
+
+      top: 12px;
+
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      width: min(92%, 520px);
+
+      min-height: 54px;
+
+      padding: 14px 18px;
+
+      display: grid;
+
+      place-items: center;
+
+      text-align: center;
+
+      border-radius: 18px;
+
+      border: 1px solid rgba(255,255,255,.8);
+
+      background: rgba(255,255,255,.62);
+
+      color: #675681;
+
+      box-shadow: 0 12px 32px rgba(82,61,115,.12);
+
+      backdrop-filter: blur(12px);
+
+      z-index: 4;
+
+    }
+
+
+
+    .speech.pop { animation: bubblePop .34s ease; }
+
+
+
+    .beam-zone {
+
+      position: relative;
+
+      width: min(94vw, 680px);
+
+      height: 210px;
+
+      margin-top: 54px;
+
+      display: grid;
+
+      place-items: center;
+
+      cursor: pointer;
+
+      user-select: none;
+
+    }
+
+
+
+    .beam {
+
+      position: relative;
+
+      width: min(100%, 620px);
+
+      height: 76px;
+
+      border-radius: 38px 38px 32px 32px;
+
+      background:
+
+        radial-gradient(circle at 35% 28%, rgba(255,255,255,.72), transparent 16%),
+
+        linear-gradient(180deg, #ffe99f 0%, var(--beam) 45%, #efbb55 100%);
+
+      border: 3px solid rgba(157,106,43,.18);
+
+      box-shadow:
+
+        inset 0 -10px 18px rgba(158,103,37,.15),
+
+        inset 0 8px 14px rgba(255,255,255,.46),
+
+        0 28px 42px rgba(137,91,44,.18);
+
+      transform: translateY(var(--bend, 0px)) scaleY(var(--beam-scale, 1));
+
+      transition: transform .22s cubic-bezier(.2,.85,.2,1.15);
+
+    }
+
+
+
+    .beam::before, .beam::after {
+
+      content: "";
+
+      position: absolute;
+
+      bottom: -58px;
+
+      width: 76px;
+
+      height: 58px;
+
+      background: linear-gradient(180deg, #d7c8ff, #a994e7);
+
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+
+      filter: drop-shadow(0 14px 12px rgba(92,71,135,.18));
+
+      z-index: -1;
+
+    }
+
+
+
+    .beam::before { left: 34px; }
+
+    .beam::after { right: 34px; }
+
+    .beam.hit { animation: beamShake .36s ease; }
+
+
+
+    .face {
+
+      position: absolute;
+
+      inset: 0;
+
+      display: grid;
+
+      place-items: center;
+
+      pointer-events: none;
+
+    }
+
+
+
+    .eyes {
+
+      display: flex;
+
+      gap: 42px;
+
+      transform: translateY(-5px);
+
+    }
+
+
+
+    .eye {
+
+      width: 18px;
+
+      height: 24px;
+
+      border-radius: 999px;
+
+      background: #4b3a45;
+
+      box-shadow: inset 0 5px 0 rgba(255,255,255,.38);
+
+      animation: blink 5.2s infinite;
+
+    }
+
+
+
+    .mouth {
+
+      position: absolute;
+
+      top: 45px;
+
+      width: 34px;
+
+      height: 15px;
+
+      border-bottom: 4px solid #5b4650;
+
+      border-radius: 0 0 30px 30px;
+
+    }
+
+
+
+    .blush {
+
+      position: absolute;
+
+      top: 42px;
+
+      width: 30px;
+
+      height: 12px;
+
+      border-radius: 999px;
+
+      background: rgba(255,144,166,.42);
+
+    }
+
+
+
+    .blush.left { transform: translateX(-88px); }
+
+    .blush.right { transform: translateX(88px); }
+
+
+
+    .tool {
+
+      position: absolute;
+
+      top: 38px;
+
+      right: clamp(74px, 18vw, 180px);
+
+      width: 74px;
+
+      height: 74px;
+
+      opacity: 0;
+
+      pointer-events: none;
+
+      z-index: 5;
+
+    }
+
+
+
+    .tool::before {
+
+      content: "";
+
+      position: absolute;
+
+      left: 34px;
+
+      top: 18px;
+
+      width: 12px;
+
+      height: 62px;
+
+      border-radius: 999px;
+
+      background: linear-gradient(180deg, #b98557, #7d513a);
+
+      transform: rotate(38deg);
+
+    }
+
+
+
+    .tool::after {
+
+      content: "";
+
+      position: absolute;
+
+      left: 12px;
+
+      top: 4px;
+
+      width: 46px;
+
+      height: 28px;
+
+      border-radius: 16px 16px 12px 12px;
+
+      background: linear-gradient(180deg, #f5f1ff, #c6b6f7);
+
+      border: 2px solid rgba(108,88,153,.22);
+
+    }
+
+
+
+    .tool.swing { animation: swing .38s cubic-bezier(.2,.9,.35,1); }
+
+
+
+    .controls {
+
+      display: grid;
+
+      place-items: center;
+
+      gap: 12px;
+
+    }
+
+
+
+    .offer-btn {
+
+      border: 0;
+
+      border-radius: 999px;
+
+      padding: 15px 26px;
+
+      min-width: 154px;
+
+      color: #4a3b5b;
+
+      font-weight: 850;
+
+      background: linear-gradient(135deg, #fff0a8, #dbcaff 58%, #fff7df);
+
+      box-shadow: 0 15px 30px rgba(91,69,125,.18), inset 0 1px 0 rgba(255,255,255,.86);
+
+      cursor: pointer;
+
+      transition: transform .16s ease;
+
+    }
+
+
+
+    .offer-btn:hover { transform: translateY(-2px); }
+
+    .offer-btn:active { transform: translateY(1px) scale(.98); }
+
+
+
+    .hint {
+
+      color: rgba(64,54,83,.62);
+
+      font-size: 13px;
+
+    }
+
+
+
+    .float-layer, .spark-layer {
+
+      position: absolute;
+
+      inset: 0;
+
+      pointer-events: none;
+
+      z-index: 8;
+
+    }
+
+
+
+    .merit-float {
+
+      position: absolute;
+
+      left: var(--x);
+
+      top: var(--y);
+
+      color: #8c65de;
+
+      font-weight: 900;
+
+      text-shadow: 0 2px 0 rgba(255,255,255,.8);
+
+      animation: meritFloat 900ms ease-out forwards;
+
+      white-space: nowrap;
+
+    }
+
+
+
+    .spark {
+
+      position: absolute;
+
+      left: var(--x);
+
+      top: var(--y);
+
+      width: 9px;
+
+      height: 9px;
+
+      background: var(--c);
+
+      clip-path: polygon(50% 0, 62% 35%, 100% 50%, 62% 65%, 50% 100%, 38% 65%, 0 50%, 38% 35%);
+
+      animation: sparkFly 780ms ease-out forwards;
+
+    }
+
+
+
+    .ambient-stars span {
+
+      position: fixed;
+
+      width: 7px;
+
+      height: 7px;
+
+      border-radius: 50%;
+
+      background: rgba(255,231,126,.8);
+
+      box-shadow: 0 0 18px rgba(255,222,106,.8);
+
+      animation: twinkle 4.8s ease-in-out infinite;
+
+    }
+
+
+
+    .ambient-stars span:nth-child(1) { left: 8%; top: 20%; }
+
+    .ambient-stars span:nth-child(2) { left: 18%; top: 72%; animation-delay: -2.2s; }
+
+    .ambient-stars span:nth-child(3) { left: 78%; top: 18%; animation-delay: -1.4s; }
+
+    .ambient-stars span:nth-child(4) { left: 90%; top: 62%; animation-delay: -3.2s; }
+
+    .ambient-stars span:nth-child(5) { left: 56%; top: 8%; animation-delay: -2.8s; }
+
+    .ambient-stars span:nth-child(6) { left: 38%; top: 86%; animation-delay: -1.1s; }
+
+
+
+    .knowledge {
+
+      display: grid;
+
+      grid-template-columns: repeat(3, 1fr);
+
+      gap: 14px;
+
+    }
+
+
+
+    .info-card {
+
+      position: relative;
+
+      min-height: 116px;
+
+      padding: 18px;
+
+      border-radius: 22px;
+
+      cursor: pointer;
+
+    }
+
+
+
+    .info-card h2 {
+
+      margin: 0 0 12px;
+
+      font-size: 18px;
+
+    }
+
+
+
+    .info-card p {
+
+      margin: 0;
+
+      color: var(--muted);
+
+      line-height: 1.55;
+
+      font-size: 14px;
+
+      opacity: 0;
+
+      transform: translateY(8px);
+
+      transition: opacity .2s ease, transform .2s ease;
+
+    }
+
+
+
+    .info-card.open p {
+
+      opacity: 1;
+
+      transform: translateY(0);
+
+    }
+
+
+
+    .badge {
+
+      position: absolute;
+
+      right: 14px;
+
+      top: 14px;
+
+      width: 26px;
+
+      height: 26px;
+
+      display: grid;
+
+      place-items: center;
+
+      border-radius: 50%;
+
+      background: rgba(255,234,157,.72);
+
+      font-weight: 900;
+
+      transition: transform .18s ease;
+
+    }
+
+
+
+    .info-card.open .badge { transform: rotate(45deg); }
+
+
+
+    @keyframes twinkle {
+
+      0%,100% { transform: translateY(0) scale(.75); opacity: .42; }
+
+      50% { transform: translateY(-12px) scale(1.15); opacity: 1; }
+
+    }
+
+
+
+    @keyframes bubblePop {
+
+      0% { transform: translateX(-50%) scale(.96); }
+
+      58% { transform: translateX(-50%) scale(1.035); }
+
+      100% { transform: translateX(-50%) scale(1); }
+
+    }
+
+
+
+    @keyframes beamShake {
+
+      0%,100% { translate: 0 0; }
+
+      18% { translate: -5px 2px; }
+
+      38% { translate: 6px -1px; }
+
+      58% { translate: -3px 1px; }
+
+      78% { translate: 2px 0; }
+
+    }
+
+
+
+    @keyframes swing {
+
+      0% { opacity: 0; transform: rotate(-46deg) translateY(-54px); }
+
+      28% { opacity: 1; }
+
+      62% { opacity: 1; transform: rotate(18deg) translateY(16px); }
+
+      100% { opacity: 0; transform: rotate(-18deg) translateY(-20px); }
+
+    }
+
+
+
+    @keyframes meritFloat {
+
+      0% { opacity: 0; transform: translate(-50%, 10px) scale(.9); }
+
+      18% { opacity: 1; }
+
+      100% { opacity: 0; transform: translate(-50%, -72px) scale(1.12); }
+
+    }
+
+
+
+    @keyframes sparkFly {
+
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0deg); }
+
+      18% { opacity: 1; }
+
+      100% {
+
+        opacity: 0;
+
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.08) rotate(160deg);
+
+      }
+
+    }
+
+
+
+    @keyframes blink {
+
+      0%,46%,50%,100% { transform: scaleY(1); }
+
+      48% { transform: scaleY(.14); }
+
+    }
+
+
+
+    @media (max-width: 760px) {
+
+      .topline { display: grid; }
+
+      .knowledge { grid-template-columns: 1fr; }
+
+      .hero-card { min-height: 590px; border-radius: 24px; }
+
+      .beam { height: 66px; }
+
+      .eyes { gap: 32px; }
+
+      .mouth { top: 40px; }
+
+      .blush.left { transform: translateX(-68px); }
+
+      .blush.right { transform: translateX(68px); }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="page">
+
+    <div class="ambient-stars" aria-hidden="true">
+
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+
+    </div>
+
+
+
+    <section class="shell">
+
+      <div class="hero-card tilt-card">
+
+        <div class="topline">
+
+          <div>
+
+            <h1>建筑力学功德模拟器</h1>
+
+            <p class="subtitle">轻轻献力，梁会记得每一次受力。</p>
+
+          </div>
+
+          <div class="score-card">
+
+            <span class="score-label">累计功德</span>
+
+            <span class="score-value" id="score">0</span>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="stage" id="stage">
+
+          <div class="speech" id="speech">ΣFx=0，ΣFy=0，ΣM=0，先来一下。</div>
+
+          <div class="beam-zone" id="beamZone" role="button" tabindex="0" aria-label="献力一下">
+
+            <div class="tool" id="tool"></div>
+
+            <div class="beam" id="beam">
+
+              <div class="face">
+
+                <div class="eyes"><span class="eye"></span><span class="eye"></span></div>
+
+                <span class="blush left"></span><span class="blush right"></span><span class="mouth"></span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="float-layer" id="floatLayer"></div>
+
+          <div class="spark-layer" id="sparkLayer"></div>
+
+        </div>
+
+
+
+        <div class="controls">
+
+          <button class="offer-btn" id="offerBtn" type="button">献力一下</button>
+
+          <span class="hint">点击梁本体也可以献力</span>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="knowledge">
+
+        <article class="info-card tilt-card" tabindex="0"><span class="badge">+</span><h2>支座反力</h2><p>支座对结构的回礼，负责把平衡撑住。</p></article>
+
+        <article class="info-card tilt-card" tabindex="0"><span class="badge">+</span><h2>剪力图</h2><p>沿梁记录内部“剪一剪”的力。</p></article>
+
+        <article class="info-card tilt-card" tabindex="0"><span class="badge">+</span><h2>弯矩图</h2><p>哪里最想弯，图上通常很诚实。</p></article>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+  <script>
+
+    const beam = document.querySelector("#beam");
+
+    const beamZone = document.querySelector("#beamZone");
+
+    const button = document.querySelector("#offerBtn");
+
+    const scoreEl = document.querySelector("#score");
+
+    const speech = document.querySelector("#speech");
+
+    const tool = document.querySelector("#tool");
+
+    const stage = document.querySelector("#stage");
+
+    const floatLayer = document.querySelector("#floatLayer");
+
+    const sparkLayer = document.querySelector("#sparkLayer");
+
+
+
+    const lines = [
+
+      "我真的受力了。",
+
+      "人又不是牛马，哪能一直干。",
+
+      "为苦命建筑生献力，功德 +1。",
+
+      "ΣFx=0，ΣFy=0，ΣM=0，求你了。",
+
+      "剪力图在哭，弯矩图在笑。",
+
+      "别敲了，我是梁，不是情绪垃圾桶。"
+
+    ];
+
+
+
+    let score = 0;
+
+    let lastLine = -1;
+
+
+
+    function randomLine() {
+
+      let next = Math.floor(Math.random() * lines.length);
+
+      while (next === lastLine) next = Math.floor(Math.random() * lines.length);
+
+      lastLine = next;
+
+      return lines[next];
+
+    }
+
+
+
+    function restart(el, name) {
+
+      el.classList.remove(name);
+
+      void el.offsetWidth;
+
+      el.classList.add(name);
+
+    }
+
+
+
+    function stagePoint(event) {
+
+      const rect = stage.getBoundingClientRect();
+
+      if (!event) return { x: rect.width * .6, y: rect.height * .55 };
+
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+
+    }
+
+
+
+    function makeFloat(x, y) {
+
+      const el = document.createElement("span");
+
+      el.className = "merit-float";
+
+      el.textContent = "功德 +1";
+
+      el.style.setProperty("--x", `${x}px`);
+
+      el.style.setProperty("--y", `${y}px`);
+
+      floatLayer.appendChild(el);
+
+      el.addEventListener("animationend", () => el.remove());
+
+    }
+
+
+
+    function makeSparks(x, y) {
+
+      const colors = ["#ffe273", "#d8c8ff", "#ffadc2", "#ffffff"];
+
+      for (let i = 0; i < 12; i++) {
+
+        const el = document.createElement("span");
+
+        const angle = Math.PI * 2 * i / 12 + Math.random() * .45;
+
+        const dist = 28 + Math.random() * 46;
+
+        el.className = "spark";
+
+        el.style.setProperty("--x", `${x}px`);
+
+        el.style.setProperty("--y", `${y}px`);
+
+        el.style.setProperty("--dx", `${Math.cos(angle) * dist}px`);
+
+        el.style.setProperty("--dy", `${Math.sin(angle) * dist}px`);
+
+        el.style.setProperty("--c", colors[i % colors.length]);
+
+        sparkLayer.appendChild(el);
+
+        el.addEventListener("animationend", () => el.remove());
+
+      }
+
+    }
+
+
+
+    function offer(event) {
+
+      score++;
+
+      scoreEl.textContent = score;
+
+      speech.textContent = randomLine();
+
+      beam.style.setProperty("--bend", `${Math.min(22, 2 + score * .42)}px`);
+
+      beam.style.setProperty("--beam-scale", `${Math.max(.82, 1 - score * .0035)}`);
+
+
+
+      restart(beam, "hit");
+
+      restart(tool, "swing");
+
+      restart(speech, "pop");
+
+
+
+      const p = stagePoint(event);
+
+      makeFloat(p.x, p.y - 8);
+
+      makeSparks(p.x, p.y);
+
+    }
+
+
+
+    function tilt(card, event) {
+
+      const rect = card.getBoundingClientRect();
+
+      const x = (event.clientX - rect.left) / rect.width;
+
+      const y = (event.clientY - rect.top) / rect.height;
+
+      card.style.setProperty("--shine-x", `${x * 100}%`);
+
+      card.style.setProperty("--shine-y", `${y * 100}%`);
+
+      card.style.setProperty("--tilt-x", `${(x - .5) * 7}deg`);
+
+      card.style.setProperty("--tilt-y", `${(.5 - y) * 7}deg`);
+
+    }
+
+
+
+    document.querySelectorAll(".tilt-card").forEach(card => {
+
+      card.addEventListener("pointermove", e => tilt(card, e));
+
+      card.addEventListener("pointerleave", () => {
+
+        card.style.setProperty("--shine-x", "50%");
+
+        card.style.setProperty("--shine-y", "30%");
+
+        card.style.setProperty("--tilt-x", "0deg");
+
+        card.style.setProperty("--tilt-y", "0deg");
+
+      });
+
+    });
+
+
+
+    document.querySelectorAll(".info-card").forEach(card => {
+
+      card.addEventListener("click", () => card.classList.toggle("open"));
+
+      card.addEventListener("keydown", e => {
+
+        if (e.key === "Enter" || e.key === " ") {
+
+          e.preventDefault();
+
+          card.classList.toggle("open");
+
+        }
+
+      });
+
+    });
+
+
+
+    beamZone.addEventListener("click", offer);
+
+    button.addEventListener("click", offer);
+
+    beamZone.addEventListener("keydown", e => {
+
+      if (e.key === "Enter" || e.key === " ") {
+
+        e.preventDefault();
+
+        offer();
+
+      }
+
+    });
+
+  </script>
+
+</body>
+
+</html>
